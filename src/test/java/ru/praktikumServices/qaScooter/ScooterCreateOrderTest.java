@@ -3,18 +3,17 @@ package ru.praktikumServices.qaScooter;
 import io.qameta.allure.Allure;
 import io.qameta.allure.AllureLifecycle;
 import io.qameta.allure.Description;
-import io.qameta.allure.Step;
 import io.restassured.RestAssured;
-import io.restassured.response.Response;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import ru.praktikumServices.qaScooter.requests.CancelOrderRequest;
+import ru.praktikumServices.qaScooter.requests.CreateOrderRequest;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.StringJoiner;
 
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -36,13 +35,13 @@ public class ScooterCreateOrderTest {
                 {new String[]{"BLACK"}},
                 {new String[]{"GREY"}},
                 {new String[]{"BLACK", "GREY"}},
-                {new String[]{}},
+                {null},
         };
     }
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = "http://qa-scooter.praktikum-services.ru/";
+        RestAssured.baseURI = Utils.baseURI;
         scooterOrdersService = new ScooterOrdersService();
         tracks = new ArrayList<>();
     }
@@ -50,48 +49,25 @@ public class ScooterCreateOrderTest {
     @Test
     @Description("Checking if \"track\" field is presented in the response and status code is 201")
     public void testCreateNewOrderReturn201Ok() {
-        String colorField = createColorField();
-        oLifecycle.updateTestCase(testResult -> testResult.setName("Check create new order with color field = \"" + colorField + "\""));
-        String newOrderBody = scooterOrdersService.createNewOrderRequestBody(colorField);
-        Response response = scooterOrdersService.createNewOrderAndReturnResponse(newOrderBody);
-        verifyTrackIsNotNullAndStatusCode201(response);
-        verifyOrderCreatedAndAddTrackToListForDeletion(response);
-    }
+        String colorsString = Utils.serializeToJsonIgnoreNulls(this.colors);
+        oLifecycle.updateTestCase(testResult -> testResult.setName("Check create new order with color field = \"" + colorsString + "\""));
 
-
-
-    @Step("Verify that response contains track which is not null and status code is 201")
-    private void verifyTrackIsNotNullAndStatusCode201(Response response) {
-        response.then().assertThat().body("track", notNullValue())
+        CreateOrderRequest createOrderRequest = new CreateOrderRequest(this.colors);
+        String track = scooterOrdersService.createNewOrderAndReturnResponse(createOrderRequest)
+                .then().assertThat().body("track", notNullValue())
                 .and()
-                .statusCode(201);
+                .statusCode(201)
+                .extract().body().path("track").toString();
+
+        tracks.add(track);
     }
 
-    @Step("Verify that new order was created and add its track to list for further deletion after the test is completed")
-    private void verifyOrderCreatedAndAddTrackToListForDeletion(Response response) {
-        if (response.statusCode() == 201) {
-            String track = response.body().path("track").toString();
-            tracks.add(track);
-        }
-    }
 
     @After
     public void tearDown() {
         for (String track : tracks) {
-            scooterOrdersService.cancelOrderAndReturnResponse(track);
+            scooterOrdersService.cancelOrderAndReturnResponse(new CancelOrderRequest(track));
         }
-    }
-
-    private String createColorField() {
-        String colorField = "";
-        if (colors.length != 0) {
-            StringJoiner colorJoiner = new StringJoiner(",", "[", "]");
-            for (int i = 0; i < colors.length; i++) {
-                colorJoiner.add("\"" + colors[i] + "\"");
-            }
-            colorField = colorJoiner.toString();
-        }
-        return colorField;
     }
 
 }

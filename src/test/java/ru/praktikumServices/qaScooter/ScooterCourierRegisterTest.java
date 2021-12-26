@@ -1,15 +1,13 @@
 package ru.praktikumServices.qaScooter;
 
 import io.qameta.allure.Description;
-import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
-import io.restassured.response.Response;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-
+import ru.praktikumServices.qaScooter.requests.LoginCourierRequest;
+import ru.praktikumServices.qaScooter.requests.RegisterCourierRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +22,7 @@ public class ScooterCourierRegisterTest {
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = "http://qa-scooter.praktikum-services.ru/";
+        RestAssured.baseURI = Utils.baseURI;
         scooterCourierService = new ScooterCourierService();
         ids = new ArrayList<>();
     }
@@ -33,37 +31,46 @@ public class ScooterCourierRegisterTest {
     @DisplayName("Check register courier")
     @Description("Checking if \"ok\" field has flag \"true\" in the response and status code is 201")
     public void testRegisterNewCourierReturn201True() {
-        String login = randomString();
-        String password = randomString();
-        String firstName = randomString();
-        String registerRequestBody = "{\"login\":\"" + login + "\","
-                + "\"password\":\"" + password + "\","
-                + "\"firstName\":\"" + firstName + "\"}";
-        Response response = scooterCourierService.registerNewCourierAndReturnResponse(registerRequestBody);
-        verifyOkFieldHasFlagTrueAndStatusCode201(response);
+        RegisterCourierRequest registerCourierRequest = new RegisterCourierRequest();
+        scooterCourierService.registerNewCourierAndReturnResponse(registerCourierRequest)
+                .then().assertThat().body("ok", equalTo(true))
+                .and()
+                .statusCode(201);
 
-        String id = scooterCourierService.loginAndReturnId(login, password);
-        addCouriersIdToListForDeletion(id);
+        LoginCourierRequest loginCourierRequest = new LoginCourierRequest(registerCourierRequest.login, registerCourierRequest.password);
+        String id = scooterCourierService.loginCourierWithRequestBodyAndReturnResponse(loginCourierRequest)
+                .then()
+                .assertThat().statusCode(200)
+                .extract()
+                .body()
+                .path("id").toString();
+
+        ids.add(id);
     }
 
 
+    //Specified response string differs from actual result
     @Test
     @DisplayName("Check register two couriers with same logins")
     @Description("Checking if \"message\" field has string \"Этот логин уже используется\" in the response and status code is 409")
-    @Ignore("No response from server")
     public void testRegisterTwoCouriersWithSameLoginReturn409UserExists() {
-        String login = randomString();
-        String password = randomString();
-        String firstName = randomString();
-        String registerRequestBody = "{\"login\":\"" + login + "\","
-                + "\"password\":\"" + password + "\","
-                + "\"firstName\":\"" + firstName + "\"}";
-        scooterCourierService.registerNewCourierAndReturnResponse(registerRequestBody);
-        Response response = scooterCourierService.registerNewCourierAndReturnResponse(registerRequestBody);
-        verifyLoginDuplicateMessageAndStatusCode409(response);
+        RegisterCourierRequest registerCourierRequest = new RegisterCourierRequest();
+        scooterCourierService.registerNewCourierAndReturnResponse(registerCourierRequest).then()
+                .assertThat()
+                .statusCode(201);
+        scooterCourierService.registerNewCourierAndReturnResponse(registerCourierRequest)
+                .then().assertThat().body("message", equalTo("Этот логин уже используется"))
+                .and()
+                .statusCode(409);
 
-        String id = scooterCourierService.loginAndReturnId(login, password);
-        addCouriersIdToListForDeletion(id);
+        LoginCourierRequest loginCourierRequest = new LoginCourierRequest(registerCourierRequest.login, registerCourierRequest.password);
+        String id = scooterCourierService.loginCourierWithRequestBodyAndReturnResponse(loginCourierRequest)
+                .then()
+                .assertThat().statusCode(200)
+                .extract()
+                .body()
+                .path("id").toString();
+        ids.add(id);
     }
 
 
@@ -73,10 +80,11 @@ public class ScooterCourierRegisterTest {
     public void testRegisterCourierWithoutPasswordReturn400BadRequest() {
         String login = randomString();
         String firstName = randomString();
-        String registerRequestBody = "{\"login\":\"" + login + "\","
-                + "\"firstName\":\"" + firstName + "\"}";
-        Response response = scooterCourierService.registerNewCourierAndReturnResponse(registerRequestBody);
-        verifyBadRequestMessageAndStatusCode400(response);
+        RegisterCourierRequest registerCourierRequest = new RegisterCourierRequest(login, null, firstName);
+        scooterCourierService.registerNewCourierAndReturnResponse(registerCourierRequest)
+                .then().assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"))
+                .and()
+                .statusCode(400);
     }
 
 
@@ -86,36 +94,11 @@ public class ScooterCourierRegisterTest {
     public void testRegisterCourierWithoutLoginReturn400BadRequest() {
         String password = randomString();
         String firstName = randomString();
-        String registerRequestBody = "{\"password\":\"" + password + "\","
-                + "\"firstName\":\"" + firstName + "\"}";
-        Response response = scooterCourierService.registerNewCourierAndReturnResponse(registerRequestBody);
-        verifyBadRequestMessageAndStatusCode400(response);
-    }
-
-    @Step("Verify that response contains \"ok\" field with flag true and status code is 201")
-    private void verifyOkFieldHasFlagTrueAndStatusCode201(Response response) {
-        response.then().assertThat().body("ok", equalTo(true))
-                .and()
-                .statusCode(201);
-    }
-
-    @Step("Verify that response contains field \"message\" with string \"Этот логин уже используется\" and status code is 409")
-    private void verifyLoginDuplicateMessageAndStatusCode409(Response response) {
-        response.then().assertThat().body("message", equalTo("Этот логин уже используется"))
-                .and()
-                .statusCode(409);
-    }
-
-    @Step("Verify that response contains field \"message\" with string \"Недостаточно данных для создания учетной записи\" and status code is 400")
-    private void verifyBadRequestMessageAndStatusCode400(Response response) {
-        response.then().assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"))
+        RegisterCourierRequest registerCourierRequest = new RegisterCourierRequest(null, password, firstName);
+        scooterCourierService.registerNewCourierAndReturnResponse(registerCourierRequest)
+                .then().assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"))
                 .and()
                 .statusCode(400);
-    }
-
-    @Step("Add courier's id to list for further deletion after the test is completed")
-    private void addCouriersIdToListForDeletion(String id) {
-        ids.add(id);
     }
 
     @After

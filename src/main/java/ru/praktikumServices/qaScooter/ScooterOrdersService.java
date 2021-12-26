@@ -3,70 +3,42 @@ package ru.praktikumServices.qaScooter;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
+import ru.praktikumServices.qaScooter.requests.CancelOrderRequest;
+import ru.praktikumServices.qaScooter.requests.CreateOrderRequest;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
-import static ru.praktikumServices.qaScooter.Utils.randomString;
 
 public class ScooterOrdersService {
     @Step("Send POST request to /api/v1/orders")
-    public Response createNewOrderAndReturnResponse(String createOrderRequestBody) {
-
-        Response response = given()
+    public Response createNewOrderAndReturnResponse(CreateOrderRequest createOrderRequest) {
+        return given()
                 .header("Content-type", "application/json")
                 .and()
-                .body(createOrderRequestBody)
+                .body(createOrderRequest.toJsonString())
                 .when()
-                .post("https://qa-scooter.praktikum-services.ru/api/v1/orders");
-        return response;
+                .post("/api/v1/orders");
 
-    }
-
-    @Step("Create new order and if success return track")
-    public String createNewOrderAndReturnTrack() {
-        String newOrderBody = createNewOrderRequestBody("");
-        Response response = createNewOrderAndReturnResponse(newOrderBody);
-        if (response.statusCode() == 201) {
-            return response.body().path("track").toString();
-        }
-        return "";
     }
 
     @Step("Send DELETE request to /api/v1/orders/cancel")
-    public Response cancelOrderAndReturnResponse(String track) {
-
-        String cancelOrderBody = "{\"track\": " + track + "}";
-
-        Response response = given()
+    public Response cancelOrderAndReturnResponse(CancelOrderRequest cancelOrderRequest) {
+        return given()
                 .header("Content-type", "application/json")
                 .and()
-                .body(cancelOrderBody)
+                .body(cancelOrderRequest.toJsonString())
                 .when()
-                .delete("http://qa-scooter.praktikum-services.ru/api/v1/orders/cancel/");
-
-        return response;
+                .delete("/api/v1/orders/cancel/");
     }
 
     @Step("Send GET request to /api/v1/orders")
     public Response getOrdersListResponse() {
-        Response response = given()
+        return given()
                 .header("Content-type", "application/json")
                 .when()
-                .get("https://qa-scooter.praktikum-services.ru/api/v1/orders");
-
-        return response;
-    }
-
-    @Step("Send GET request to /api/v1/orders/track and return id")
-    public String getOrderByTrackAndReturnId(String trackString) {
-        Response response = getOrderByTrackAndReturnResponse(trackString);
-
-        if (response.statusCode() == 200) {
-            return response.body().path("order.id").toString();
-        }
-        return "";
+                .get("/api/v1/orders");
     }
 
     @Step("Send GET request to /api/v1/orders/track and return response")
@@ -78,59 +50,29 @@ public class ScooterOrdersService {
             requestSpecification = requestSpecification.queryParam("t", trackString);
         }
         return requestSpecification
-                .get("https://qa-scooter.praktikum-services.ru/api/v1/orders/track");
+                .get("/api/v1/orders/track");
 
     }
 
     @Step("Send PUT request to /api/v1/orders/accept")
     public Response acceptOrderByOrderIdAndCourierId(String orderId, String courierId) {
-        String path = "https://qa-scooter.praktikum-services.ru/api/v1/orders/accept/";
+        String path = "/api/v1/orders/accept";
+
+        Map<String, String> queryParamMap = new HashMap<>();
         if (!orderId.isEmpty()) {
-            path += orderId;
+            queryParamMap.put("id", orderId);
         }
         if (!courierId.isEmpty()) {
-            if (!orderId.isEmpty()) {
-                path += "?";
-            }
-
-            path += "courierId=" + courierId;
+            queryParamMap.put("courierId", courierId);
         }
 
-        Response response = given()
+        return given()
+                .log().all()
+                .queryParams(queryParamMap)
                 .header("Content-type", "application/json")
                 .when()
                 .put(path);
-
-        return response;
     }
 
-    private String createDateString() {
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-        Date date = new Date();
-        return formatter.format(date);
-    }
 
-    @Step("Create new order request body")
-    public String createNewOrderRequestBody(String colorField) {
-        String firstName = randomString();
-        String lastName = randomString();
-        String address = randomString();
-        String metroStation = randomString();
-        String phone = randomString();
-        int rentTime = new java.util.Random().nextInt();
-
-        String deliveryDate = createDateString();
-
-        String comment = randomString();
-
-        return "{\"firstName\":\"" + firstName + "\","
-                + "\"lastName\":\"" + lastName + "\","
-                + "\"address\":\"" + address + "\","
-                + "\"metroStation\":\"" + metroStation + "\","
-                + "\"phone\":\"" + phone + "\","
-                + "\"rentTime\":\"" + rentTime + "\","
-                + "\"deliveryDate\":\"" + deliveryDate + "\","
-                + "\"comment\":\"" + comment + "\""
-                + (colorField.isEmpty() ? "" : ", \"color\": " + colorField) + "}";
-    }
 }

@@ -2,63 +2,39 @@ package ru.praktikumServices.qaScooter;
 
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
+import ru.praktikumServices.qaScooter.requests.LoginCourierRequest;
+import ru.praktikumServices.qaScooter.requests.RegisterCourierRequest;
 
-import static io.restassured.RestAssured.*;
+import static io.restassured.RestAssured.given;
 
 public class ScooterCourierService {
-
     @Step("Send POST request to /api/v1/courier")
-    public Response registerNewCourierAndReturnResponse(String registerRequestBody) {
-
-        Response response = given()
+    public Response registerNewCourierAndReturnResponse(RegisterCourierRequest registerCourierRequest) {
+        return given()
                 .header("Content-type", "application/json")
                 .and()
-                .body(registerRequestBody)
+                .body(registerCourierRequest.toJsonString())
                 .when()
-                .post("https://qa-scooter.praktikum-services.ru/api/v1/courier");
-        return response;
-    }
-
-    @Step("Login courier and if success return courier's id")
-    public String loginAndReturnId(String login, String password) {
-        Response response = loginCourierAndReturnResponse(login, password);
-        if (response.statusCode() == 200) {
-            return response.body().path("id").toString();
-        }
-        return "";
-    }
-
-    public Response loginCourierAndReturnResponse(String login, String password) {
-
-        String loginRequestBody = "{\"login\":\"" + login + "\","
-                + "\"password\":\"" + password + "\"}";
-
-        return loginCourierWithRequestBodyAndReturnResponse(loginRequestBody);
+                .post("/api/v1/courier");
     }
 
     @Step("Login courier and if success return response body")
-    public Response loginCourierWithRequestBodyAndReturnResponse(String loginRequestBody) {
-        Response response = given()
+    public Response loginCourierWithRequestBodyAndReturnResponse(LoginCourierRequest loginCourierRequest) {
+        return given()
                 .header("Content-type", "application/json")
                 .and()
-                .body(loginRequestBody)
+                .body(loginCourierRequest.toJsonString())
                 .when()
-                .post("http://qa-scooter.praktikum-services.ru/api/v1/courier/login");
-        return response;
-    }
-
-    public Response deleteCourierAndReturnResponse(int id) {
-        return deleteCourierAndReturnResponse("" + id);
+                .post("/api/v1/courier/login");
     }
 
     @Step("Send DELETE request to /api/v1/courier")
     public Response deleteCourierAndReturnResponse(String idStr) {
-        Response response = given()
+
+        return given()
                 .header("Content-type", "application/json")
                 .when()
-                .delete("http://qa-scooter.praktikum-services.ru/api/v1/courier/" + idStr);
-
-        return response;
+                .delete("/api/v1/courier/" + idStr);
     }
 
 }
