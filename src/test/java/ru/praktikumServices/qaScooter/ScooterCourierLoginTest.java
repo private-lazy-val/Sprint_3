@@ -2,7 +2,6 @@ package ru.praktikumServices.qaScooter;
 
 import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
-import io.restassured.RestAssured;
 import org.junit.After;
 import org.junit.Before;
 
@@ -23,25 +22,23 @@ public class ScooterCourierLoginTest {
     String login;
     String password;
     String firstName;
+    RegisterCourierRequest registerCourierRequest;
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = Utils.baseURI;
         scooterCourierService = new ScooterCourierService();
         ids = new ArrayList<>();
 
-        RegisterCourierRequest registerCourierRequest = new RegisterCourierRequest();
+        registerCourierRequest = RegisterCourierRequest.getRandom();
         scooterCourierService.registerNewCourierAndReturnResponse(registerCourierRequest)
-                .then()
                 .assertThat()
                 .statusCode(201);
         login = registerCourierRequest.login;
         password = registerCourierRequest.password;
         firstName = registerCourierRequest.firstName;
 
-        LoginCourierRequest loginCourierRequest = new LoginCourierRequest(login, password);
+        LoginCourierRequest loginCourierRequest = LoginCourierRequest.getLoginCourierRequest(registerCourierRequest);
         String courierId = scooterCourierService.loginCourierWithRequestBodyAndReturnResponse(loginCourierRequest)
-                .then()
                 .assertThat().statusCode(200)
                 .extract()
                 .body()
@@ -50,13 +47,22 @@ public class ScooterCourierLoginTest {
         ids.add(courierId);
     }
 
+    @After
+    public void tearDown() {
+        for (String id : ids) {
+            if (!id.equals("")) {
+                scooterCourierService.deleteCourierAndReturnResponse(id);
+            }
+        }
+    }
+
     @Test
     @DisplayName("Check courier login")
     @Description("Checking if \"id\" field is presented in the response and status code is 200")
     public void testCourierLoginReturn200AndId() {
-        LoginCourierRequest loginCourierRequest = new LoginCourierRequest(login, password);
+        LoginCourierRequest loginCourierRequest = LoginCourierRequest.getLoginCourierRequest(registerCourierRequest);
         scooterCourierService.loginCourierWithRequestBodyAndReturnResponse(loginCourierRequest)
-                .then().assertThat().body("id", notNullValue())
+                .assertThat().body("id", notNullValue())
                 .and()
                 .statusCode(200);
     }
@@ -67,19 +73,19 @@ public class ScooterCourierLoginTest {
     public void testCourierLoginWithoutLoginReturn404NotFound() {
         LoginCourierRequest loginCourierRequest = new LoginCourierRequest(null, password);
         scooterCourierService.loginCourierWithRequestBodyAndReturnResponse(loginCourierRequest)
-                .then().assertThat().body("message", equalTo("Недостаточно данных для входа"))
+                .assertThat().body("message", equalTo("Недостаточно данных для входа"))
                 .and()
                 .statusCode(400);
     }
-
     //No response from server
+
     @Test
     @DisplayName("Check courier login without password")
     @Description("Checking if \"message\" field has string \"Недостаточно данных для входа\" in the response and status code is 400")
     public void testCourierLoginWithoutPasswordReturn404NotFound() {
         LoginCourierRequest loginCourierRequest = new LoginCourierRequest(login, null);
         scooterCourierService.loginCourierWithRequestBodyAndReturnResponse(loginCourierRequest)
-                .then().assertThat().body("message", equalTo("Недостаточно данных для входа"))
+                .assertThat().body("message", equalTo("Недостаточно данных для входа"))
                 .and()
                 .statusCode(400);
     }
@@ -91,7 +97,7 @@ public class ScooterCourierLoginTest {
         String wrongLogin = "wrong" + login;
         LoginCourierRequest loginCourierRequest = new LoginCourierRequest(wrongLogin, password);
         scooterCourierService.loginCourierWithRequestBodyAndReturnResponse(loginCourierRequest)
-                .then().assertThat().body("message", equalTo("Учетная запись не найдена"))
+                .assertThat().body("message", equalTo("Учетная запись не найдена"))
                 .and()
                 .statusCode(404);
     }
@@ -103,18 +109,9 @@ public class ScooterCourierLoginTest {
         String wrongPassword = "wrong" + password;
         LoginCourierRequest loginCourierRequest = new LoginCourierRequest(login, wrongPassword);
         scooterCourierService.loginCourierWithRequestBodyAndReturnResponse(loginCourierRequest)
-                .then().assertThat().body("message", equalTo("Учетная запись не найдена"))
+                .assertThat().body("message", equalTo("Учетная запись не найдена"))
                 .and()
                 .statusCode(404);
-    }
-
-    @After
-    public void tearDown() {
-        for (String id : ids) {
-            if (!id.equals("")) {
-                scooterCourierService.deleteCourierAndReturnResponse(id);
-            }
-        }
     }
 
 }

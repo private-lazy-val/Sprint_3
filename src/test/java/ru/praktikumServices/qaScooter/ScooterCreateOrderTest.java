@@ -3,7 +3,6 @@ package ru.praktikumServices.qaScooter;
 import io.qameta.allure.Allure;
 import io.qameta.allure.AllureLifecycle;
 import io.qameta.allure.Description;
-import io.restassured.RestAssured;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,9 +40,15 @@ public class ScooterCreateOrderTest {
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = Utils.baseURI;
         scooterOrdersService = new ScooterOrdersService();
         tracks = new ArrayList<>();
+    }
+
+    @After
+    public void tearDown() {
+        for (String track : tracks) {
+            scooterOrdersService.cancelOrderAndReturnResponse(new CancelOrderRequest(track));
+        }
     }
 
     @Test
@@ -52,9 +57,9 @@ public class ScooterCreateOrderTest {
         String colorsString = Utils.serializeToJsonIgnoreNulls(this.colors);
         oLifecycle.updateTestCase(testResult -> testResult.setName("Check create new order with color field = \"" + colorsString + "\""));
 
-        CreateOrderRequest createOrderRequest = new CreateOrderRequest(this.colors);
+        CreateOrderRequest createOrderRequest = CreateOrderRequest.getRandom(colors);
         String track = scooterOrdersService.createNewOrderAndReturnResponse(createOrderRequest)
-                .then().assertThat().body("track", notNullValue())
+                .assertThat().body("track", notNullValue())
                 .and()
                 .statusCode(201)
                 .extract().body().path("track").toString();
@@ -62,12 +67,5 @@ public class ScooterCreateOrderTest {
         tracks.add(track);
     }
 
-
-    @After
-    public void tearDown() {
-        for (String track : tracks) {
-            scooterOrdersService.cancelOrderAndReturnResponse(new CancelOrderRequest(track));
-        }
-    }
 
 }

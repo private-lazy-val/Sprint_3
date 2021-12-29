@@ -1,11 +1,11 @@
 package ru.praktikumServices.qaScooter.requests;
 
-import static ru.praktikumServices.qaScooter.Utils.randomString;
+import org.apache.commons.lang3.RandomStringUtils;
 
 public class RegisterCourierRequest extends Request {
-    public String login;
-    public String password;
-    public String firstName;
+    public final String login;
+    public final String password;
+    public final String firstName;
 
     public RegisterCourierRequest(String login, String password, String firstName) {
         this.login = login;
@@ -13,9 +13,10 @@ public class RegisterCourierRequest extends Request {
         this.firstName = firstName;
     }
 
-    public RegisterCourierRequest() {
-        firstName = randomString();
-        login = randomString();
-        password = randomString();
+    public static RegisterCourierRequest getRandom() {
+        final String firstName = RandomStringUtils.randomAlphabetic(10);
+        final String login = RandomStringUtils.randomAlphabetic(10);
+        final String password = RandomStringUtils.randomAlphabetic(10);
+        return new RegisterCourierRequest(login, password, firstName);
     }
 }

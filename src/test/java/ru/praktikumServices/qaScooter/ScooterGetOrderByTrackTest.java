@@ -2,7 +2,6 @@ package ru.praktikumServices.qaScooter;
 
 import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
-import io.restassured.RestAssured;
 import org.junit.After;
 import org.junit.Before;
 
@@ -23,48 +22,9 @@ public class ScooterGetOrderByTrackTest {
 
     @Before
     public void setUp() {
-        RestAssured.baseURI = Utils.baseURI;
         scooterOrdersService = new ScooterOrdersService();
 
         orderIds = new ArrayList<>();
-    }
-
-    @DisplayName("Check get order by track")
-    @Description("Checking if order field is not null in the response and status code is 200")
-    @Test
-    public void testGetOrderByTrackReturn200() {
-        String orderTrack = scooterOrdersService.createNewOrderAndReturnResponse(new CreateOrderRequest()).then()
-                .assertThat().statusCode(201)
-                .extract()
-                .body()
-                .path("track").toString();
-        scooterOrdersService
-                .getOrderByTrackAndReturnResponse(orderTrack).then().assertThat().body("order", notNullValue())
-                .and()
-                .statusCode(200);
-        String orderId = scooterOrdersService.getOrderByTrackAndReturnResponse(orderTrack).then().assertThat().statusCode(200)
-                .extract()
-                .body()
-                .path("order.id").toString();
-        orderIds.add(orderId);
-    }
-
-
-    // Can't ensure order id doesn't exist by deleting existing order: delete order api method doesn't work
-    @DisplayName("Check get order by wrong track")
-    @Description("Checking if \"message\" field has string \"Заказ не найден\" and status code is 404")
-    @Test
-    public void testGetOrderWithWrongTrackReturn404() {
-        String orderTrack = scooterOrdersService.createNewOrderAndReturnResponse(new CreateOrderRequest()).then()
-                .assertThat().statusCode(201)
-                .extract()
-                .body()
-                .path("track").toString();
-        scooterOrdersService.cancelOrderAndReturnResponse(new CancelOrderRequest(orderTrack));
-        scooterOrdersService.getOrderByTrackAndReturnResponse(orderTrack)
-                .then().assertThat().body("message", equalTo("Заказ не найден"))
-                .and()
-                .statusCode(404);
     }
 
     @After
@@ -72,6 +32,44 @@ public class ScooterGetOrderByTrackTest {
         for (String orderId : orderIds) {
             scooterOrdersService.cancelOrderAndReturnResponse(new CancelOrderRequest(orderId));
         }
+    }
+
+    @DisplayName("Check get order by track")
+    @Description("Checking if order field is not null in the response and status code is 200")
+    @Test
+    public void testGetOrderByTrackReturn200() {
+        String orderTrack = scooterOrdersService.createNewOrderAndReturnResponse(CreateOrderRequest.getRandom())
+                .assertThat().statusCode(201)
+                .extract()
+                .body()
+                .path("track").toString();
+        scooterOrdersService
+                .getOrderByTrackAndReturnResponse(orderTrack).assertThat().body("order", notNullValue())
+                .and()
+                .statusCode(200);
+        String orderId = scooterOrdersService.getOrderByTrackAndReturnResponse(orderTrack).assertThat().statusCode(200)
+                .extract()
+                .body()
+                .path("order.id").toString();
+        orderIds.add(orderId);
+    }
+
+    // Can't ensure order id doesn't exist by deleting existing order: delete order api method doesn't work
+
+    @DisplayName("Check get order by wrong track")
+    @Description("Checking if \"message\" field has string \"Заказ не найден\" and status code is 404")
+    @Test
+    public void testGetOrderWithWrongTrackReturn404() {
+        String orderTrack = scooterOrdersService.createNewOrderAndReturnResponse(CreateOrderRequest.getRandom())
+                .assertThat().statusCode(201)
+                .extract()
+                .body()
+                .path("track").toString();
+        scooterOrdersService.cancelOrderAndReturnResponse(new CancelOrderRequest(orderTrack));
+        scooterOrdersService.getOrderByTrackAndReturnResponse(orderTrack)
+                .assertThat().body("message", equalTo("Заказ не найден"))
+                .and()
+                .statusCode(404);
     }
 
 

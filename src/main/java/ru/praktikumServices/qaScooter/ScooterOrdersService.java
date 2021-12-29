@@ -1,7 +1,7 @@
 package ru.praktikumServices.qaScooter;
 
 import io.qameta.allure.Step;
-import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import ru.praktikumServices.qaScooter.requests.CancelOrderRequest;
 import ru.praktikumServices.qaScooter.requests.CreateOrderRequest;
@@ -11,52 +11,58 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 
-public class ScooterOrdersService {
+public class ScooterOrdersService extends RestAssuredClient {
+
+    private static final String PATH = "/api/v1/orders/";
+
     @Step("Send POST request to /api/v1/orders")
-    public Response createNewOrderAndReturnResponse(CreateOrderRequest createOrderRequest) {
+    public ValidatableResponse createNewOrderAndReturnResponse(CreateOrderRequest createOrderRequest) {
         return given()
-                .header("Content-type", "application/json")
-                .and()
+                .log().all()
+                .spec(getBaseSpec())
                 .body(createOrderRequest.toJsonString())
                 .when()
-                .post("/api/v1/orders");
+                .post(PATH)
+                .then();
 
     }
 
     @Step("Send DELETE request to /api/v1/orders/cancel")
-    public Response cancelOrderAndReturnResponse(CancelOrderRequest cancelOrderRequest) {
+    public ValidatableResponse cancelOrderAndReturnResponse(CancelOrderRequest cancelOrderRequest) {
         return given()
-                .header("Content-type", "application/json")
-                .and()
+                .spec(getBaseSpec())
                 .body(cancelOrderRequest.toJsonString())
                 .when()
-                .delete("/api/v1/orders/cancel/");
+                .delete(PATH + "cancel/")
+                .then();
     }
 
     @Step("Send GET request to /api/v1/orders")
-    public Response getOrdersListResponse() {
+    public ValidatableResponse getOrdersListResponse() {
         return given()
-                .header("Content-type", "application/json")
+                .spec(getBaseSpec())
                 .when()
-                .get("/api/v1/orders");
+                .get(PATH)
+                .then();
     }
 
     @Step("Send GET request to /api/v1/orders/track and return response")
-    public Response getOrderByTrackAndReturnResponse(String trackString) {
+    public ValidatableResponse getOrderByTrackAndReturnResponse(String trackString) {
         RequestSpecification requestSpecification = given()
-                .header("Content-type", "application/json")
+                .spec(getBaseSpec())
                 .when();
         if (!trackString.isEmpty()) {
             requestSpecification = requestSpecification.queryParam("t", trackString);
         }
         return requestSpecification
-                .get("/api/v1/orders/track");
+                .get(PATH + "track")
+                .then();
 
     }
 
     @Step("Send PUT request to /api/v1/orders/accept")
-    public Response acceptOrderByOrderIdAndCourierId(String orderId, String courierId) {
-        String path = "/api/v1/orders/accept";
+    public ValidatableResponse acceptOrderByOrderIdAndCourierId(String orderId, String courierId) {
+        String path = PATH + "accept";
 
         Map<String, String> queryParamMap = new HashMap<>();
         if (!orderId.isEmpty()) {
@@ -67,11 +73,12 @@ public class ScooterOrdersService {
         }
 
         return given()
-                .log().all()
+                .spec(getBaseSpec())
                 .queryParams(queryParamMap)
                 .header("Content-type", "application/json")
                 .when()
-                .put(path);
+                .put(path)
+                .then();
     }
 
 

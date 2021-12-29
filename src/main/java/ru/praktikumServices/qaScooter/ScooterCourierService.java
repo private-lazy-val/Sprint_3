@@ -1,40 +1,44 @@
 package ru.praktikumServices.qaScooter;
 
 import io.qameta.allure.Step;
-import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
 import ru.praktikumServices.qaScooter.requests.LoginCourierRequest;
 import ru.praktikumServices.qaScooter.requests.RegisterCourierRequest;
 
 import static io.restassured.RestAssured.given;
 
-public class ScooterCourierService {
+public class ScooterCourierService extends RestAssuredClient {
+
+    private static final String PATH = "/api/v1/courier/";
+
     @Step("Send POST request to /api/v1/courier")
-    public Response registerNewCourierAndReturnResponse(RegisterCourierRequest registerCourierRequest) {
+    public ValidatableResponse registerNewCourierAndReturnResponse(RegisterCourierRequest registerCourierRequest) {
         return given()
-                .header("Content-type", "application/json")
-                .and()
+                .spec(getBaseSpec())
                 .body(registerCourierRequest.toJsonString())
                 .when()
-                .post("/api/v1/courier");
+                .post(PATH)
+                .then();
     }
 
     @Step("Login courier and if success return response body")
-    public Response loginCourierWithRequestBodyAndReturnResponse(LoginCourierRequest loginCourierRequest) {
+    public ValidatableResponse loginCourierWithRequestBodyAndReturnResponse(LoginCourierRequest loginCourierRequest) {
         return given()
-                .header("Content-type", "application/json")
-                .and()
+                .spec(getBaseSpec())
                 .body(loginCourierRequest.toJsonString())
                 .when()
-                .post("/api/v1/courier/login");
+                .post(PATH + "login")
+                .then();
     }
 
     @Step("Send DELETE request to /api/v1/courier")
-    public Response deleteCourierAndReturnResponse(String idStr) {
+    public ValidatableResponse deleteCourierAndReturnResponse(String idStr) {
 
         return given()
-                .header("Content-type", "application/json")
+                .spec(getBaseSpec())
                 .when()
-                .delete("/api/v1/courier/" + idStr);
+                .delete(PATH + idStr)
+                .then();
     }
 
 }
