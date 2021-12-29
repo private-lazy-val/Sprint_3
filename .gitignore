@@ -2,8 +2,33 @@
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 target
 
-src/.DS_Store
-src/main/.DS_Store
+.DS_Store
+
+##############################
+## Java
+##############################
+.mtj.tmp/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+
+##############################
+## Maven
+##############################
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+pom.xml.bak
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
 
 # User-specific stuff
 .idea/**/workspace.xml
@@ -78,4 +103,4 @@ fabric.properties
 .idea/httpRequests
 
 # Android studio 3.1+ serialized cache file
-.idea/caches/build_file_checksums.ser
+.idea/caches/build_file_checksums.ser.DS_Store
