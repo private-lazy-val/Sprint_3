@@ -5,6 +5,7 @@ import io.qameta.allure.junit4.DisplayName;
 import org.junit.After;
 import org.junit.Before;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import ru.praktikumServices.qaScooter.requests.LoginCourierRequest;
 import ru.praktikumServices.qaScooter.requests.RegisterCourierRequest;
@@ -77,8 +78,9 @@ public class ScooterCourierLoginTest {
                 .and()
                 .statusCode(400);
     }
-    //No response from server
 
+    //No response from server
+    @Ignore
     @Test
     @DisplayName("Check courier login without password")
     @Description("Checking if \"message\" field has string \"Недостаточно данных для входа\" in the response and status code is 400")
